@@ -1,5 +1,6 @@
 package org.jetbrains.dokka.base.signatures
 
+import kotlinx.html.Entities
 import org.jetbrains.dokka.base.transformers.pages.comments.CommentsToContentConverter
 import org.jetbrains.dokka.base.translators.documentables.PageContentBuilder
 import org.jetbrains.dokka.links.DRI
@@ -7,17 +8,20 @@ import org.jetbrains.dokka.links.DriOfAny
 import org.jetbrains.dokka.links.DriOfUnit
 import org.jetbrains.dokka.links.sureClassNames
 import org.jetbrains.dokka.model.*
+import org.jetbrains.dokka.model.properties.ExtraProperty
 import org.jetbrains.dokka.model.properties.WithExtraProperties
 import org.jetbrains.dokka.pages.ContentKind
 import org.jetbrains.dokka.pages.ContentNode
 import org.jetbrains.dokka.pages.PlatformData
 import org.jetbrains.dokka.pages.TextStyle
 import org.jetbrains.dokka.utilities.DokkaLogger
+import kotlin.text.Typography.nbsp
 
 class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLogger) : SignatureProvider {
     private val contentBuilder = PageContentBuilder(ctcc, this, logger)
 
-    private val ignoredVisibilities = setOf(JavaVisibility.Default, KotlinVisibility.Public)
+    private val ignoredVisibilities = setOf(JavaVisibility.Public, KotlinVisibility.Public)
+    private val ignoredModifiers = setOf(JavaModifier.Final, KotlinModifier.Final)
 
     override fun signature(documentable: Documentable): ContentNode = when (documentable) {
         is DFunction -> functionSignature(documentable)
@@ -55,33 +59,51 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
 
     private fun regularSignature(c: DClasslike, platformData: Set<PlatformData> = c.platformData.toSet()) =
         contentBuilder.contentFor(c, ContentKind.Symbol, setOf(TextStyle.Monospace), platformData = platformData) {
-            platformText(c.visibility, platformData) { (it.takeIf { it !in ignoredVisibilities }?.name ?: "") + " " }
-            if (c is DClass) {
-                platformText(c.modifier, platformData) {
-                    if (c.extra[AdditionalModifiers]?.content?.contains(ExtraModifiers.DATA) == true && it.name == "final") "data "
-                    else it.name + " "
+            group(styles = setOf(TextStyle.Block)) {
+                kotlinAnnotationsBlock(c)
+                platformText(
+                    c.visibility,
+                    platformData
+                ) { it.takeIf { it !in ignoredVisibilities }?.name?.let { "$it " } ?: "" }
+                if (c is DClass) {
+                    platformText(c.modifier, platformData) {
+                        if (c.extra[AdditionalModifiers]?.content?.contains(ExtraModifiers.DATA) == true) ""
+                        else it.name + " "
+                    }
                 }
-            }
-            when (c) {
-                is DClass -> text("class ")
-                is DInterface -> text("interface ")
-                is DEnum -> text("enum ")
-                is DObject -> text("object ")
-                is DAnnotation -> text("annotation class ")
-            }
-            link(c.name!!, c.dri)
-            if (c is DClass) {
-                val pConstructor = c.constructors.singleOrNull { it.extra[PrimaryConstructorExtra] != null }
-                list(pConstructor?.parameters.orEmpty(), "(", ")", ",", pConstructor?.platformData.orEmpty().toSet()) {
-                    text(it.name ?: "", styles = mainStyles.plus(TextStyle.Bold).plus(TextStyle.Indented))
-                    text(": ")
-                    signatureForProjection(it.type)
+                when (c) {
+                    is DClass -> text("${c.kotlinAdditionalModifiers()}class ")
+                    is DInterface -> text("interface ")
+                    is DEnum -> text("enum ")
+                    is DObject -> text("object ")
+                    is DAnnotation -> text("annotation class ")
                 }
-            }
-            if (c is WithSupertypes) {
-                c.supertypes.filter { it.key in platformData }.map { (p, dris) ->
-                    list(dris, prefix = " : ", platformData = setOf(p)) {
-                        link(it.sureClassNames, it, platformData = setOf(p))
+                link(c.name!!, c.dri)
+                if (c is DClass) {
+                    val pConstructor = c.constructors.singleOrNull { it.extra[PrimaryConstructorExtra] != null }
+                    if (pConstructor?.annotations()?.isNotEmpty() == true) {
+                        text(nbsp.toString())
+                        kotlinAnnotationsInline(pConstructor)
+                        text("constructor")
+                    }
+                    list(
+                        pConstructor?.parameters.orEmpty(),
+                        "(",
+                        ")",
+                        ",",
+                        pConstructor?.platformData.orEmpty().toSet()
+                    ) {
+                        kotlinAnnotationsInline(it)
+                        text(it.name ?: "", styles = mainStyles.plus(TextStyle.Bold))
+                        text(": ")
+                        signatureForProjection(it.type)
+                    }
+                }
+                if (c is WithSupertypes) {
+                    c.supertypes.filter { it.key in platformData }.map { (p, dris) ->
+                        list(dris, prefix = " : ", platformData = setOf(p)) {
+                            link(it.sureClassNames, it, platformData = setOf(p))
+                        }
                     }
                 }
             }
@@ -89,45 +111,52 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
 
     private fun propertySignature(p: DProperty, platformData: Set<PlatformData> = p.platformData.toSet()) =
         contentBuilder.contentFor(p, ContentKind.Symbol, setOf(TextStyle.Monospace), platformData = platformData) {
-            platformText(p.visibility) { (it.takeIf { it !in ignoredVisibilities }?.name ?: "") + " " }
-            platformText(p.modifier){ it.name + " "}
-            p.setter?.let { text("var ") } ?: text("val ")
-            list(p.generics, prefix = "<", suffix = "> ") {
-                +buildSignature(it)
+            group(styles = setOf(TextStyle.Block)) {
+                kotlinAnnotationsBlock(p)
+                platformText(p.visibility) { it.takeIf { it !in ignoredVisibilities }?.name?.let { "$it " } ?: "" }
+                platformText(p.modifier) { it.takeIf { it !in ignoredModifiers }?.name?.let { "$it " } ?: "" }
+                text(p.kotlinAdditionalModifiers())
+                p.setter?.let { text("var ") } ?: text("val ")
+                list(p.generics, prefix = "<", suffix = "> ") {
+                    +buildSignature(it)
+                }
+                p.receiver?.also {
+                    signatureForProjection(it.type)
+                    text(".")
+                }
+                link(p.name, p.dri)
+                text(": ")
+                signatureForProjection(p.type)
             }
-            p.receiver?.also {
-                signatureForProjection(it.type)
-                text(".")
-            }
-            link(p.name, p.dri)
-            text(": ")
-            signatureForProjection(p.type)
         }
 
     private fun functionSignature(f: DFunction, platformData: Set<PlatformData> = f.platformData.toSet()) =
         contentBuilder.contentFor(f, ContentKind.Symbol, setOf(TextStyle.Monospace), platformData = platformData) {
-            platformText(f.visibility) { (it.takeIf { it !in ignoredVisibilities }?.name ?: "") + " " }
-            platformText(f.modifier) { it.name + " " }
-            text("fun ")
-            list(f.generics, prefix = "<", suffix = "> ") {
-                +buildSignature(it)
-            }
-            f.receiver?.also {
-                signatureForProjection(it.type)
-                text(".")
-            }
-            link(f.name, f.dri)
-            text("(")
-            list(f.parameters) {
-                text(it.name!!)
-                text(": ")
-
-                signatureForProjection(it.type)
-            }
-            text(")")
-            if (f.documentReturnType()) {
-                text(": ")
-                signatureForProjection(f.type)
+            group(styles = setOf(TextStyle.Block)) {
+                kotlinAnnotationsBlock(f)
+                platformText(f.visibility) { it.takeIf { it !in ignoredVisibilities }?.name?.let { "$it " } ?: "" }
+                platformText(f.modifier) { it.takeIf { it !in ignoredModifiers }?.name?.let { "$it " } ?: "" }
+                text(f.kotlinAdditionalModifiers())
+                text("fun ")
+                list(f.generics, prefix = "<", suffix = "> ") {
+                    +buildSignature(it)
+                }
+                f.receiver?.also {
+                    signatureForProjection(it.type)
+                    text(".")
+                }
+                link(f.name, f.dri)
+                list(f.parameters, "(", ")") {
+                    kotlinAnnotationsInline(it)
+                    text(it.kotlinAdditionalModifiers())
+                    text(it.name!!)
+                    text(": ")
+                    signatureForProjection(it.type)
+                }
+                if (f.documentReturnType()) {
+                    text(": ")
+                    signatureForProjection(f.type)
+                }
             }
         }
 
@@ -147,7 +176,8 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
                     setOf(TextStyle.Monospace),
                     platformData = platforms.toSet()
                 ) {
-                    platformText(t.visibility) { (it.takeIf { it !in ignoredVisibilities }?.name ?: "") + " " }
+                    platformText(t.visibility) { it.takeIf { it !in ignoredVisibilities }?.name?.let { "$it " } ?: "" }
+                    text(t.kotlinAdditionalModifiers())
                     text("typealias ")
                     signatureForProjection(t.type)
                     text(" = ")
@@ -170,21 +200,21 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
             is TypeConstructor -> if (p.function)
                 +funType(this.mainDRI, this.mainPlatformData, p)
             else
-                group {
+                group(styles = emptySet()) {
                     link(p.dri.classNames.orEmpty(), p.dri)
                     list(p.projections, prefix = "<", suffix = ">") {
                         signatureForProjection(it)
                     }
                 }
 
-            is Variance -> group {
+            is Variance -> group(styles = emptySet()) {
                 text(p.kind.toString() + " ")
                 signatureForProjection(p.inner)
             }
 
             is Star -> text("*")
 
-            is Nullable -> group {
+            is Nullable -> group(styles = emptySet()) {
                 signatureForProjection(p.inner)
                 text("?")
             }
@@ -192,6 +222,7 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
             is JavaObject -> link("Any", DriOfAny)
             is Void -> link("Unit", DriOfUnit)
             is PrimitiveJavaType -> signatureForProjection(p.translateToKotlin())
+            is Dynamic -> text("dynamic")
         }
 
     private fun funType(dri: DRI, platformData: Set<PlatformData>, type: TypeConstructor) =
@@ -214,6 +245,15 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
             text(") -> ")
             signatureForProjection(args.last())
         }
+
+    fun PageContentBuilder.DocumentableContentBuilder.kotlinAnnotationsBlock(d: Documentable) =
+        annotationsBlock(d, emptySet())
+
+    fun PageContentBuilder.DocumentableContentBuilder.kotlinAnnotationsInline(d: Documentable) =
+        annotationsInline(d, emptySet())
+
+    private fun <T : Documentable> WithExtraProperties<T>.kotlinAdditionalModifiers() =
+        this.modifiers(ExtraModifiers.kotlinOnlyModifiers).toSignatureString()
 }
 
 private fun PrimitiveJavaType.translateToKotlin() = TypeConstructor(

@@ -5,6 +5,8 @@ import org.jetbrains.dokka.links.DRI
 import org.jetbrains.dokka.model.doc.DocumentationNode
 import org.jetbrains.dokka.model.properties.PropertyContainer
 import org.jetbrains.dokka.model.properties.WithExtraProperties
+import org.jetbrains.dokka.pages.ContentKind
+import org.jetbrains.dokka.pages.Kind
 import org.jetbrains.dokka.pages.PlatformData
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.load.kotlin.toSourceElement
@@ -380,6 +382,7 @@ data class Variance(val kind: Kind, val inner: Bound) : Projection() {
 data class PrimitiveJavaType(val name: String) : Bound()
 object Void : Bound()
 object JavaObject : Bound()
+object Dynamic : Bound()
 
 enum class FunctionModifiers {
     NONE, FUNCTION, EXTENSION
@@ -387,8 +390,19 @@ enum class FunctionModifiers {
 
 enum class ExtraModifiers {
     STATIC, INLINE, INFIX, SUSPEND, REIFIED, CROSSINLINE, NOINLINE,
-    OVERRIDE, DATA, CONST, DYNAMIC, EXTERNAL, INNER, LATEINIT, OPERATOR, TAILREC, VARARG,
-    NATIVE, SYNCHRONIZED, STRICTFP, TRANSIENT, VOLATILE, TRANSITIVE
+    OVERRIDE, DATA, CONST, EXTERNAL, INNER, LATEINIT, OPERATOR, TAILREC, VARARG,
+    NATIVE, SYNCHRONIZED, STRICTFP, TRANSIENT, VOLATILE, TRANSITIVE;
+
+    companion object {
+        val kotlinOnlyModifiers = setOf(
+            INLINE, INFIX, EXTERNAL, SUSPEND, REIFIED, CROSSINLINE, NOINLINE, OVERRIDE, DATA, CONST, INNER, LATEINIT, OPERATOR,
+            TAILREC, VARARG
+        )
+
+        val javaOnlyModifiers = setOf(
+            STATIC, NATIVE, SYNCHRONIZED, STRICTFP, TRANSIENT, VOLATILE, TRANSITIVE
+        )
+    }
 }
 
 private fun String.shorten(maxLength: Int) = lineSequence().first().let {

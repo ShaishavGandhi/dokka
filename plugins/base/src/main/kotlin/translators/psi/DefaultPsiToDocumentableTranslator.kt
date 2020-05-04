@@ -153,7 +153,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                         null,
                         constructors.map { parseFunction(it, true) },
                         listOf(platformData),
-                        PropertyContainer.empty<DAnnotation>() + annotations.toList().toExtra()
+                        PropertyContainer.empty<DAnnotation>() + annotations.toList().toListOfAnnotations().let(::Annotations)
                     )
                 isEnum -> DEnum(
                     dri,
@@ -167,7 +167,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                             emptyList(),
                             emptyList(),
                             listOf(platformData),
-                            PropertyContainer.empty<DEnumEntry>() + entry.annotations.toList().toExtra()
+                            PropertyContainer.empty<DEnumEntry>() + entry.annotations.toList().toListOfAnnotations().let(::Annotations)
                         )
                     },
                     documentation,
@@ -180,7 +180,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                     constructors.map { parseFunction(it, true) },
                     ancestors,
                     listOf(platformData),
-                    PropertyContainer.empty<DEnum>() + annotations.toList().toExtra()
+                    PropertyContainer.empty<DEnum>() + annotations.toList().toListOfAnnotations().let(::Annotations)
                 )
                 isInterface -> DInterface(
                     dri,
@@ -195,7 +195,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                     mapTypeParameters(dri),
                     ancestors,
                     listOf(platformData),
-                    PropertyContainer.empty<DInterface>() + annotations.toList().toExtra()
+                    PropertyContainer.empty<DInterface>() + annotations.toList().toListOfAnnotations().let(::Annotations)
                 )
                 else -> DClass(
                     dri,
@@ -212,7 +212,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                     documentation,
                     modifiers,
                     listOf(platformData),
-                    PropertyContainer.empty<DClass>() + annotations.toList().toExtra()
+                    PropertyContainer.empty<DClass>() + annotations.toList().toListOfAnnotations().let(::Annotations)
                 )
             }
         }
@@ -244,15 +244,17 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                 null,
                 psi.getModifier().toPlatformDependant(),
                 listOf(platformData),
-                PropertyContainer.withAll(
-                    InheritedFunction(isInherited),
-                    psi.annotations.toList().toExtra(),
-                    psi.additionalExtras()
-                )
+                psi.additionalExtras().let {
+                    PropertyContainer.withAll(
+                        InheritedFunction(isInherited),
+                        it,
+                        (psi.annotations.toList().toListOfAnnotations() + it.toListOfAnnotations()).let(::Annotations)
+                    )
+                }
             )
         }
 
-        private fun PsiMethod.additionalExtras() = AdditionalModifiers(
+        private fun PsiModifierListOwner.additionalExtras() = AdditionalModifiers(
             listOfNotNull(
                 ExtraModifiers.STATIC.takeIf { hasModifier(JvmModifier.STATIC) },
                 ExtraModifiers.NATIVE.takeIf { hasModifier(JvmModifier.NATIVE) },
@@ -263,6 +265,13 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                 ExtraModifiers.TRANSITIVE.takeIf { hasModifier(JvmModifier.TRANSITIVE) }
             ).toSet()
         )
+
+        private fun AdditionalModifiers.toListOfAnnotations() = this.content.map {
+            if (it.name != "STATIC")
+                Annotations.Annotation(DRI("kotlin.jvm", it.name.toLowerCase().capitalize()), emptyMap())
+            else
+                Annotations.Annotation(DRI("kotlin.jvm", "JvmStatic"), emptyMap())
+        }
 
         private fun getBound(type: PsiType): Bound =
             cachedBounds.getOrPut(type.canonicalText) {
@@ -280,7 +289,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                         DRI("kotlin", "Array"),
                         listOf(getProjection(type.componentType))
                     )
-                    is PsiPrimitiveType -> if(type.name == "void") Void else PrimitiveJavaType(type.name)
+                    is PsiPrimitiveType -> if (type.name == "void") Void else PrimitiveJavaType(type.name)
                     else -> throw IllegalStateException("${type.presentableText} is not supported by PSI parser")
                 }
             }
@@ -358,11 +367,16 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                 psi.getModifier().toPlatformDependant(),
                 listOf(platformData),
                 emptyList(),
-                PropertyContainer.empty<DProperty>() + psi.annotations.toList().toExtra()
+                psi.additionalExtras().let {
+                    PropertyContainer.withAll<DProperty>(
+                        it,
+                        (psi.annotations.toList().toListOfAnnotations() + it.toListOfAnnotations()).let(::Annotations)
+                    )
+                }
             )
         }
 
-        private fun Collection<PsiAnnotation>.toExtra() = mapNotNull { annotation ->
+        private fun Collection<PsiAnnotation>.toListOfAnnotations() = mapNotNull { annotation ->
             val resolved = annotation.getChildOfType<PsiJavaCodeReferenceElement>()?.resolve() ?: run {
                 logger.error("$annotation cannot be resolved to symbol!")
                 return@mapNotNull null
@@ -372,12 +386,12 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                 DRI.from(resolved),
                 annotation.attributes.mapNotNull { attr ->
                     if (attr is PsiNameValuePair) {
-                        attr.value?.text?.let { attr.attributeName to it }
+                        attr.value?.text?.let { attr.attributeName to "(...)" }
                     } else {
                         attr.attributeName to ""
                     }
                 }.toMap()
             )
-        }.let(::Annotations)
+        }
     }
 }
