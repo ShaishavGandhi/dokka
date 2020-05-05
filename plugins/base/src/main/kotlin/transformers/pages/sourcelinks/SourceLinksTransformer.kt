@@ -5,9 +5,12 @@ import com.intellij.psi.PsiDocumentManager
 import org.jetbrains.dokka.DokkaConfiguration
 import org.jetbrains.dokka.base.translators.documentables.PageContentBuilder
 import org.jetbrains.dokka.model.DescriptorDocumentableSource
+import org.jetbrains.dokka.model.SourceSetData
 import org.jetbrains.dokka.model.DocumentableSource
 import org.jetbrains.dokka.model.PsiDocumentableSource
 import org.jetbrains.dokka.model.WithExpectActual
+import org.jetbrains.dokka.model.properties.PropertyContainer
+import org.jetbrains.dokka.model.sourceSet
 import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
 import org.jetbrains.dokka.transformers.pages.PageTransformer
@@ -30,7 +33,7 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
         }
 
     private fun getSourceLinks() = context.configuration.passesConfigurations
-        .flatMap { it.sourceLinks.map { sl -> SourceLink(sl, it.platformData) } }
+        .flatMap { it.sourceLinks.map { sl -> SourceLink(sl, it.sourceSet) } }
 
     private fun resolveSources(documentable: WithExpectActual) = documentable.sources
         .mapNotNull { entry ->
@@ -94,7 +97,7 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
             else -> ContentGroup(
                 children = listOf(this, table),
                 extra = this.extra,
-                platforms = this.platforms,
+                sourceSets = this.sourceSets,
                 dci = this.dci,
                 style = this.style
             )
@@ -107,8 +110,8 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
     }
 }
 
-data class SourceLink(val path: String, val url: String, val lineSuffix: String?, val platformData: PlatformData) {
-    constructor(sourceLinkDefinition: DokkaConfiguration.SourceLinkDefinition, platformData: PlatformData) : this(
+data class SourceLink(val path: String, val url: String, val lineSuffix: String?, val platformData: SourceSetData) {
+    constructor(sourceLinkDefinition: DokkaConfiguration.SourceLinkDefinition, platformData: SourceSetData) : this(
         sourceLinkDefinition.path, sourceLinkDefinition.url, sourceLinkDefinition.lineSuffix, platformData
     )
 }
