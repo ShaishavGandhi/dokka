@@ -1,10 +1,13 @@
 package org.jetbrains.dokka.base.translators.psi
 
+import com.intellij.lang.jvm.annotation.JvmAnnotationAttribute
 import com.intellij.lang.jvm.JvmModifier
 import com.intellij.lang.jvm.types.JvmReferenceType
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.PsiClassReferenceType
+import com.intellij.psi.impl.source.PsiImmediateClassType
+import com.intellij.psi.impl.source.tree.java.PsiArrayInitializerMemberValueImpl
 import org.jetbrains.dokka.links.DRI
 import org.jetbrains.dokka.links.withClass
 import org.jetbrains.dokka.model.*
@@ -23,6 +26,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.psiUtil.getChildOfType
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
+import java.lang.ClassValue
 
 object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
 
@@ -290,6 +294,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
                         listOf(getProjection(type.componentType))
                     )
                     is PsiPrimitiveType -> if (type.name == "void") Void else PrimitiveJavaType(type.name)
+                    is PsiImmediateClassType -> JavaObject
                     else -> throw IllegalStateException("${type.presentableText} is not supported by PSI parser")
                 }
             }
@@ -376,22 +381,34 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
             )
         }
 
-        private fun Collection<PsiAnnotation>.toListOfAnnotations() = mapNotNull { annotation ->
-            val resolved = annotation.getChildOfType<PsiJavaCodeReferenceElement>()?.resolve() ?: run {
-                logger.error("$annotation cannot be resolved to symbol!")
-                return@mapNotNull null
-            }
+        private fun Collection<PsiAnnotation>.toListOfAnnotations() = mapNotNull { it.toAnnotation() }
 
-            Annotations.Annotation(
-                DRI.from(resolved),
-                annotation.attributes.mapNotNull { attr ->
-                    if (attr is PsiNameValuePair) {
-                        attr.value?.text?.let { attr.attributeName to "(...)" }
-                    } else {
-                        attr.attributeName to ""
-                    }
-                }.toMap()
-            )
+        private fun JvmAnnotationAttribute.toValue(): AnnotationParameterValue = when (this) {
+            is PsiNameValuePair -> value?.toValue() ?: StringValue("")
+            else -> StringValue(this.attributeName)
         }
+
+        private fun PsiAnnotationMemberValue.toValue(): AnnotationParameterValue = when(this) {
+            is PsiAnnotation -> AnnotationValue(toAnnotation())
+            is PsiArrayInitializerMemberValue -> ArrayValue(this.initializers.map { it.toValue() })
+            is PsiReferenceExpression -> EnumValue(
+                text ?: "",
+                driOfReference()
+            )
+            is PsiClassObjectAccessExpression -> ClassValue(
+                text ?: "",
+                DRI.from(((type as PsiImmediateClassType).parameters.single() as PsiClassReferenceType).resolve()!!)
+            )
+            else -> StringValue(text ?: "")
+        }
+
+        private fun PsiAnnotation.toAnnotation() = Annotations.Annotation(
+            driOfReference(),
+            attributes.mapNotNull { it.attributeName to it.toValue() }.toMap()
+        )
+
+        private fun PsiElement.driOfReference() = DRI.from(getChildOfType<PsiJavaCodeReferenceElement>()?.resolve() ?:
+            throw IllegalStateException("$this cannot be resolved to symbol!")
+        )
     }
 }
