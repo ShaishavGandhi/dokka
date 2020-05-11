@@ -1,25 +1,26 @@
 package utils
 
 import matchers.content.*
+import org.jetbrains.dokka.model.*
 import org.jetbrains.dokka.pages.ContentGroup
 import kotlin.text.Typography.nbsp
 
 //TODO: Try to unify those functions after update to 1.4
 fun ContentMatcherBuilder<*>.functionSignature(
-    annotations: Set<String>,
+    annotations: Map<String, Set<String>>,
     visibility: String,
     modifier: String,
     keywords: Set<String>,
     name: String,
     returnType: String? = null,
-    vararg params: Pair<String, Map<String, Set<String>>>
+    vararg params: Pair<String, ParamAttributes>
 ) =
     platformHinted {
         group { // TODO: remove it when double wrapping for signatures will be resolved
             group {
-                annotations.forEach {
+                annotations.entries.forEach {
                     group {
-                        link { +it }
+                        unwrapAnnotation(it)
                     }
                 }
                 +("$visibility $modifier ${keywords.joinToString("") { "$it " }} fun")
@@ -27,15 +28,15 @@ fun ContentMatcherBuilder<*>.functionSignature(
                 +"("
                 params.forEachIndexed { id, (n, t) ->
 
-                    t["Annotations"]?.forEach {
-                        link { +it }
+                    t.annotations.forEach {
+                        unwrapAnnotation(it)
                     }
-                    t["Keywords"]?.forEach {
+                    t.keywords.forEach {
                         +it
                     }
 
                     +"$n:"
-                    group { link { +(t["Type"]?.single() ?: "") } }
+                    group { link { +(t.type) } }
                     if (id != params.lastIndex)
                         +", "
                 }
@@ -53,22 +54,21 @@ fun ContentMatcherBuilder<*>.functionSignature(
     }
 
 fun ContentMatcherBuilder<*>.functionSignatureWithReceiver(
-
-    annotations: Set<String>,
+    annotations: Map<String, Set<String>>,
     visibility: String?,
     modifier: String?,
     keywords: Set<String>,
     receiver: String,
     name: String,
     returnType: String? = null,
-    vararg params: Pair<String, Map<String, Set<String>>>
+    vararg params: Pair<String, ParamAttributes>
 ) =
     platformHinted {
         group { // TODO: remove it when double wrapping for signatures will be resolved
             group {
-                annotations.forEach {
+                annotations.entries.forEach {
                     group {
-                        link { +it }
+                        unwrapAnnotation(it)
                     }
                 }
                 +("$visibility $modifier ${keywords.joinToString("") { "$it " }} fun")
@@ -80,15 +80,15 @@ fun ContentMatcherBuilder<*>.functionSignatureWithReceiver(
                 +"("
                 params.forEachIndexed { id, (n, t) ->
 
-                    t["Annotations"]?.forEach {
-                        +("$it ")
+                    t.annotations.forEach {
+                        unwrapAnnotation(it)
                     }
-                    t["Keywords"]?.forEach {
-                        +("$it ")
+                    t.keywords.forEach {
+                        +it
                     }
 
                     +"$n:"
-                    group { link { +(t["Type"]?.single() ?: "") } }
+                    group { link { +(t.type) } }
                     if (id != params.lastIndex)
                         +", "
                 }
@@ -106,7 +106,7 @@ fun ContentMatcherBuilder<*>.functionSignatureWithReceiver(
     }
 
 fun ContentMatcherBuilder<*>.propertySignature(
-    annotations: Set<String>,
+    annotations: Map<String, Set<String>>,
     visibility: String,
     modifier: String,
     keywords: Set<String>,
@@ -118,6 +118,7 @@ fun ContentMatcherBuilder<*>.propertySignature(
         header { +"Package test" }
     }
     group {
+        skipAllNotMatching()
         header { +"Properties" }
         table {
             group {
@@ -125,9 +126,9 @@ fun ContentMatcherBuilder<*>.propertySignature(
                 platformHinted {
                     group {
                         group {
-                            annotations.forEach {
+                            annotations.entries.forEach {
                                 group {
-                                    link { +it }
+                                    unwrapAnnotation(it)
                                 }
                             }
                             +("$visibility $modifier ${keywords.joinToString("") { "$it " }} $preposition")
@@ -159,3 +160,20 @@ fun ContentMatcherBuilder<*>.unnamedTag(tag: String, content: ContentMatcherBuil
         header(4) { +tag }
         group { content() }
     }
+
+private fun ContentMatcherBuilder<*>.unwrapAnnotation(elem: Map.Entry<String, Set<String>>) {
+    +"@"
+    link { +elem.key }
+    +"("
+    elem.value.forEach {
+        +("$it = ")
+        skipAllNotMatching()
+    }
+    +")"
+}
+
+data class ParamAttributes(
+    val annotations: Map<String, Set<String>>,
+    val keywords: Set<String>,
+    val type: String
+)

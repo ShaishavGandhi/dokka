@@ -7,6 +7,7 @@ import org.jetbrains.dokka.pages.PackagePageNode
 import org.jetbrains.dokka.testApi.testRunner.AbstractCoreTest
 import org.jetbrains.kotlin.utils.addToStdlib.cast
 import org.junit.jupiter.api.Test
+import utils.ParamAttributes
 import utils.functionSignature
 import utils.propertySignature
 
@@ -40,7 +41,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "", "", emptySet(), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -65,7 +66,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "private", "", emptySet(), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "private", "", emptySet(), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -90,7 +91,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "open", emptySet(), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "", "open", emptySet(), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -115,7 +116,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", setOf("suspend"), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "", "", setOf("suspend"), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -140,7 +141,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "protected", "open", setOf("suspend"), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "protected", "open", setOf("suspend"), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -165,7 +166,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "protected", "open", setOf("inline", "suspend"), "function","String", "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(emptyMap(), "protected", "open", setOf("inline", "suspend"), "function","String", "abc" to ParamAttributes(emptyMap(), emptySet(), "String"))
                     }
                 }
             }
@@ -185,7 +186,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
-                    propertySignature(emptySet(), "", "", emptySet(), "val", "property","Int")
+                    propertySignature(emptyMap(), "", "", emptySet(), "val", "property","Int")
                 }
             }
         }
@@ -204,7 +205,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
-                    propertySignature(emptySet(), "", "", setOf("const"), "val", "property","Int")
+                    propertySignature(emptyMap(), "", "", setOf("const"), "val", "property","Int")
                 }
             }
         }
@@ -223,7 +224,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
-                    propertySignature(emptySet(), "protected", "", emptySet(), "val", "property","Int")
+                    propertySignature(emptyMap(), "protected", "", emptySet(), "val", "property","Int")
                 }
             }
         }
@@ -242,7 +243,7 @@ class ContentForSignaturesTest : AbstractCoreTest() {
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
-                    propertySignature(emptySet(), "protected", "", setOf("lateinit"), "var", "property","Int")
+                    propertySignature(emptyMap(), "protected", "", setOf("lateinit"), "var", "property","Int")
                 }
             }
         }

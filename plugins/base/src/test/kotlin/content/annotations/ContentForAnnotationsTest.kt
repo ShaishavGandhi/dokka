@@ -7,8 +7,10 @@ import org.jetbrains.dokka.pages.ContentPage
 import org.jetbrains.dokka.pages.PackagePageNode
 import org.jetbrains.dokka.testApi.testRunner.AbstractCoreTest
 import org.junit.jupiter.api.Test
+import utils.ParamAttributes
 import utils.functionSignature
 import utils.propertySignature
+import kotlin.reflect.KClass
 
 
 class ContentForAnnotationsTest : AbstractCoreTest() {
@@ -52,13 +54,13 @@ class ContentForAnnotationsTest : AbstractCoreTest() {
                     group {
                         header(1) { +"function" }
                         functionSignature(
-                            setOf("@Fancy()"),
+                            mapOf("Fancy" to emptySet()),
                             "",
                             "",
                             emptySet(),
                             "function",
                             "String",
-                            "abc" to mapOf("Type" to setOf("String"), "Annotations" to setOf("@Fancy()"))
+                            "abc" to ParamAttributes(mapOf("Fancy" to emptySet()), emptySet(), "String")
                         )
                     }
                 }
@@ -80,10 +82,61 @@ class ContentForAnnotationsTest : AbstractCoreTest() {
             pagesTransformationStage = { module ->
                 val page = module.children.single { it.name == "test" } as PackagePageNode
                 page.content.assertNode {
-                    propertySignature(setOf("@Suppress(names=(...))"), "", "", emptySet(), "val", "property", "Int")
+                    propertySignature(mapOf("Suppress" to setOf("names")), "", "", emptySet(), "val", "property", "Int")
                 }
             }
         }
     }
+
+
+
+    @Test
+    fun `rich annotation`() {
+        testInline(
+            """
+            |/src/main/kotlin/test/source.kt
+            |package test
+            |
+            |@Retention(AnnotationRetention.SOURCE)
+            |@Target(AnnotationTarget.FIELD)
+            |annotation class BugReport(
+            |    val assignedTo: String = "[none]",
+            |    val testCase: KClass<ABC> = ABC::class,
+            |    val status: Status = Status.UNCONFIRMED,
+            |    val ref: Reference = Reference(value = 1),
+            |    val reportedBy: Array<Reference>,
+            |    val showStopper: Boolean = false
+            |) {
+            |    enum class Status {
+            |        UNCONFIRMED, CONFIRMED, FIXED, NOTABUG
+            |    }
+            |    class ABC
+            |}
+            |annotation class Reference(val value: Int)
+            |
+            |
+            |@BugReport(
+            |    assignedTo = "me",
+            |    testCase = BugReport.ABC::class,
+            |    status = BugReport.Status.FIXED,
+            |    ref = Reference(value = 2),
+            |    reportedBy = [Reference(value = 2), Reference(value = 4)],
+            |    showStopper = true
+            |)
+            |val ltint: Int = 5
+        """.trimIndent(), testConfiguration
+        ) {
+            pagesTransformationStage = { module ->
+                val page = module.children.single { it.name == "test" } as PackagePageNode
+                page.content.assertNode {
+                    propertySignature(mapOf("BugReport" to setOf("assignedTo", "testCase", "status", "ref", "reportedBy", "showStopper")), "", "", emptySet(), "val", "ltint", "Int")
+                }
+            }
+        }
+    }
+
+
+
+
 
 }

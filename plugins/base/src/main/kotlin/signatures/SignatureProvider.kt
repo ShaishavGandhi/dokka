@@ -5,6 +5,7 @@ import org.jetbrains.dokka.base.translators.documentables.PageContentBuilder
 import org.jetbrains.dokka.model.*
 import org.jetbrains.dokka.model.properties.WithExtraProperties
 import org.jetbrains.dokka.pages.ContentNode
+import org.jetbrains.dokka.pages.TextStyle
 
 interface SignatureProvider {
     fun signature(documentable: Documentable): ContentNode
@@ -26,23 +27,23 @@ interface SignatureProvider {
         listBrackets: Tuple2<Char, Char>,
         classExtension: String
     ) {
-        when (renderAtStrategy) {
-            is All, is OnlyOnce -> text("@")
-            is Never -> Unit
-        }
-        link(a.dri.classNames!!, a.dri)
-        text("(")
-        a.params.entries.forEachIndexed { i, it ->
-            text(it.key + " = ")
             when (renderAtStrategy) {
-                is All -> All
-                is Never, is OnlyOnce -> Never
-            }.let { strategy ->
-                valueToSignature(it.value, strategy, listBrackets, classExtension)
+                is All, is OnlyOnce -> text("@")
+                is Never -> Unit
             }
-            if (i != a.params.entries.size - 1) text(", ")
-        }
-        text(")")
+            link(a.dri.classNames!!, a.dri)
+            text("(")
+            a.params.entries.forEachIndexed { i, it ->
+                text(it.key + " = ")
+                when (renderAtStrategy) {
+                    is All -> All
+                    is Never, is OnlyOnce -> Never
+                }.let { strategy ->
+                    valueToSignature(it.value, strategy, listBrackets, classExtension)
+                }
+                if (i != a.params.entries.size - 1) text(", ")
+            }
+            text(")")
     }
 
     private fun PageContentBuilder.DocumentableContentBuilder.valueToSignature(

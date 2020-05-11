@@ -247,9 +247,9 @@ class KotlinSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLog
             signatureForProjection(args.last())
         }
 
-    val strategy = OnlyOnce
-    val listBrackets = Tuple2('[', ']')
-    val classExtension = "::class"
+    private val strategy = OnlyOnce
+    private val listBrackets = Tuple2('[', ']')
+    private val classExtension = "::class"
 
     fun PageContentBuilder.DocumentableContentBuilder.kotlinAnnotationsBlock(d: Documentable) =
         annotationsBlock(d, emptySet(), strategy, listBrackets, classExtension)

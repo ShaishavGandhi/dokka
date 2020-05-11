@@ -138,9 +138,9 @@ class JavaSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLogge
         is PrimitiveJavaType -> text(p.name)
     }
 
-    val strategy = All
-    val listBrackets = Tuple2('{', '}')
-    val classExtension = ".class"
+    private val strategy = All
+    private val listBrackets = Tuple2('{', '}')
+    private val classExtension = ".class"
 
     fun PageContentBuilder.DocumentableContentBuilder.javaAnnotationsBlock(d: Documentable) =
         annotationsBlock(d, ignoredAnnotations, strategy, listBrackets, classExtension)

@@ -4,10 +4,7 @@ import matchers.content.*
 import org.jetbrains.dokka.pages.ContentPage
 import org.jetbrains.dokka.testApi.testRunner.AbstractCoreTest
 import org.junit.jupiter.api.Test
-import utils.pWrapped
-import utils.functionSignature
-import utils.functionSignatureWithReceiver
-import utils.unnamedTag
+import utils.*
 
 class ContentForParamsTest : AbstractCoreTest() {
     private val testConfiguration = dokkaConfiguration {
@@ -38,7 +35,13 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(
+                            emptyMap(), "", "", emptySet(), "function", null, "abc" to ParamAttributes(
+                                emptyMap(),
+                                emptySet(),
+                                "String"
+                            )
+                        )
                     }
                 }
             }
@@ -65,7 +68,15 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(
+                            emptyMap(),
+                            "",
+                            "",
+                            emptySet(),
+                            "function",
+                            null,
+                            "abc" to ParamAttributes(emptyMap(), emptySet(), "String")
+                        )
                     }
                     header(3) { +"Description" }
                     platformHinted {
@@ -97,7 +108,15 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(
+                            emptyMap(),
+                            "",
+                            "",
+                            emptySet(),
+                            "function",
+                            null,
+                            "abc" to ParamAttributes(emptyMap(), emptySet(), "String")
+                        )
                     }
                     header(3) { +"Description" }
                     platformHinted {
@@ -131,7 +150,15 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(
+                            emptyMap(),
+                            "",
+                            "",
+                            emptySet(),
+                            "function",
+                            null,
+                            "abc" to ParamAttributes(emptyMap(), emptySet(), "String")
+                        )
                     }
                     header(3) { +"Description" }
                     platformHinted {
@@ -165,7 +192,15 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignature(
+                            emptyMap(),
+                            "",
+                            "",
+                            emptySet(),
+                            "function",
+                            null,
+                            "abc" to ParamAttributes(emptyMap(), emptySet(), "String")
+                        )
                     }
                     header(3) { +"Description" }
                     platformHinted {
@@ -206,10 +241,11 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null,
-                            "first" to mapOf("Type" to setOf("String")),
-                            "second" to mapOf("Type" to setOf("Int")),
-                            "third" to mapOf("Type" to setOf("Double"))
+                        functionSignature(
+                            emptyMap(), "", "", emptySet(), "function", null,
+                            "first" to ParamAttributes(emptyMap(), emptySet(), "String"),
+                            "second" to ParamAttributes(emptyMap(), emptySet(), "Int"),
+                            "third" to ParamAttributes(emptyMap(), emptySet(), "Double")
                         )
                     }
                     header(3) { +"Description" }
@@ -258,10 +294,11 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null,
-                            "first" to mapOf("Type" to setOf("String")),
-                            "second" to mapOf("Type" to setOf("Int")),
-                            "third" to mapOf("Type" to setOf("Double"))
+                        functionSignature(
+                            emptyMap(), "", "", emptySet(), "function", null,
+                            "first" to ParamAttributes(emptyMap(), emptySet(), "String"),
+                            "second" to ParamAttributes(emptyMap(), emptySet(), "Int"),
+                            "third" to ParamAttributes(emptyMap(), emptySet(), "Double")
                         )
                     }
                     header(3) { +"Description" }
@@ -309,7 +346,16 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignatureWithReceiver(emptySet(), "", "", emptySet(), "String", "function",null, "abc" to mapOf("Type" to setOf("String")))
+                        functionSignatureWithReceiver(
+                            emptyMap(),
+                            "",
+                            "",
+                            emptySet(),
+                            "String",
+                            "function",
+                            null,
+                            "abc" to ParamAttributes(emptyMap(), emptySet(), "String")
+                        )
                     }
                     header(3) { +"Description" }
                     platformHinted {
@@ -353,10 +399,11 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null,
-                            "first" to mapOf("Type" to setOf("String")),
-                            "second" to mapOf("Type" to setOf("Int")),
-                            "third" to mapOf("Type" to setOf("Double"))
+                        functionSignature(
+                            emptyMap(), "", "", emptySet(), "function", null,
+                            "first" to ParamAttributes(emptyMap(), emptySet(), "String"),
+                            "second" to ParamAttributes(emptyMap(), emptySet(), "Int"),
+                            "third" to ParamAttributes(emptyMap(), emptySet(), "Double")
                         )
                     }
                     header(3) { +"Description" }
@@ -404,10 +451,11 @@ class ContentForParamsTest : AbstractCoreTest() {
                 page.content.assertNode {
                     group {
                         header(1) { +"function" }
-                        functionSignature(emptySet(), "", "", emptySet(), "function",null,
-                            "first" to mapOf("Type" to setOf("String")),
-                            "second" to mapOf("Type" to setOf("Int")),
-                            "third" to mapOf("Type" to setOf("Double"))
+                        functionSignature(
+                            emptyMap(), "", "", emptySet(), "function", null,
+                            "first" to ParamAttributes(emptyMap(), emptySet(), "String"),
+                            "second" to ParamAttributes(emptyMap(), emptySet(), "Int"),
+                            "third" to ParamAttributes(emptyMap(), emptySet(), "Double")
                         )
                     }
                     header(3) { +"Description" }
