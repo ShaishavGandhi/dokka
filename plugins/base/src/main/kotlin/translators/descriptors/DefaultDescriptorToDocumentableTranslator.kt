@@ -665,7 +665,7 @@ private class DokkaDescriptorVisitor(
                 )
             }
         }
-        else -> StringValue(value.toString())
+        else -> StringValue(toString())
     }
 
     private fun AnnotationDescriptor.toAnnotation() = Annotations.Annotation(

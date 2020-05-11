@@ -1,5 +1,8 @@
 package org.jetbrains.dokka.kotlinAsJava.signatures
 
+import javaslang.Tuple2
+import org.jetbrains.dokka.base.signatures.All
+import org.jetbrains.dokka.base.signatures.OnlyOnce
 import org.jetbrains.dokka.base.signatures.SignatureProvider
 import org.jetbrains.dokka.base.transformers.pages.comments.CommentsToContentConverter
 import org.jetbrains.dokka.base.translators.documentables.PageContentBuilder
@@ -135,11 +138,15 @@ class JavaSignatureProvider(ctcc: CommentsToContentConverter, logger: DokkaLogge
         is PrimitiveJavaType -> text(p.name)
     }
 
+    val strategy = All
+    val listBrackets = Tuple2('{', '}')
+    val classExtension = ".class"
+
     fun PageContentBuilder.DocumentableContentBuilder.javaAnnotationsBlock(d: Documentable) =
-        annotationsBlock(d, ignoredAnnotations)
+        annotationsBlock(d, ignoredAnnotations, strategy, listBrackets, classExtension)
 
     fun PageContentBuilder.DocumentableContentBuilder.javaAnnotationsInline(d: Documentable) =
-        annotationsInline(d, ignoredAnnotations)
+        annotationsInline(d, ignoredAnnotations, strategy, listBrackets, classExtension)
 
     private fun <T : Documentable> WithExtraProperties<T>.javaAdditionalModifiers() =
         this.modifiers(ExtraModifiers.javaOnlyModifiers).toSignatureString()
