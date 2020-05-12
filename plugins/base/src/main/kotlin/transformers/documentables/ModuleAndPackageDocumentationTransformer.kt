@@ -85,12 +85,12 @@ internal object ModuleAndPackageDocumentationTransformer : PreMergeDocumentableT
             }.toMap()
 
             module.copy(
-                documentation = module.documentation.let { SourceSetDependent(it.map + moduleDocumentation) },
+                documentation = module.documentation.let { it + moduleDocumentation },
                 packages = module.packages.map {
                     val packageDocumentation = packagesDocumentation[it.name]
                     if (packageDocumentation != null && packageDocumentation.isNotEmpty())
                         it.copy(documentation = it.documentation.let { value ->
-                            SourceSetDependent(value.map + packagesDocumentation[it.name]!!)
+                            value + packagesDocumentation[it.name]!!
                         })
                     else
                         it

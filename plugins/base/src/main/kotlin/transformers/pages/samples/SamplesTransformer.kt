@@ -33,9 +33,9 @@ abstract class SamplesTransformer(val context: DokkaContext) : PageTransformer {
         val analysis = setUpAnalysis(context)
 
         return input.transformContentPagesTree { page ->
-            page.documentable?.documentation?.allEntries?.fold(page) { acc, entry ->
-                entry.second.children.filterIsInstance<Sample>().fold(acc) { acc, sample ->
-                    acc.modified(content = acc.content.addSample(page, entry.first, sample.name, analysis))
+            page.documentable?.documentation?.entries?.fold(page) { acc, entry ->
+                entry.value.children.filterIsInstance<Sample>().fold(acc) { acc, sample ->
+                    acc.modified(content = acc.content.addSample(page, entry.key, sample.name, analysis))
                 }
             } ?: page
         }
