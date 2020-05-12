@@ -1,211 +1,135 @@
 package org.jetbrains.dokka
 
+import kotlinx.cli.*
 import org.jetbrains.dokka.DokkaConfiguration.ExternalDocumentationLink
 import org.jetbrains.dokka.utilities.DokkaConsoleLogger
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.MalformedURLException
 import java.net.URL
-import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Paths
 
-open class GlobalArguments(parser: DokkaArgumentsParser) : DokkaConfiguration {
-    override val outputDir: String by parser.stringOption(
-        listOf("-output"),
-        "Output directory path",
-        ""
-    )
+open class GlobalArguments() : DokkaConfiguration {
 
-    override val format: String by parser.stringOption(
-        listOf("-format"),
-        "Output format (text, html, gfm, jekyll, kotlin-website)",
-        ""
-    )
+    val parser = ArgParser("globalArguments")
 
-    override val pluginsClasspath: List<File> by parser.repeatableOption(
-        listOf("-dokkaPlugins"),
-        "List of jars with dokka plugins"
-    ) {
-        File(it)
-    }.also {
-        Paths.get("./dokka-base.jar").toAbsolutePath().normalize().run {
-            if (Files.exists(this)) it.value.add(this.toFile())
-            else throw FileNotFoundException("Dokka base plugin is not found! Make sure you placed 'dokka-base.jar' containing base plugin along the cli jar file")
+    override val outputDir by parser.option(ArgType.String, description = "Output directory path").required()
+    override val format by parser.option(
+        ArgType.String,
+        description = "Output format (text, html, gfm, jekyll, kotlin-website)"
+    ).required()
+    override val pluginsClasspath by parser.option(ArgTypeFile, description = "List of jars with dokka plugins")
+        .vararg().also {
+            Paths.get("./dokka-base.jar").toAbsolutePath().normalize().run {
+                if (Files.exists(this)) (it.value as MutableList<File>).add(this.toFile())
+                else throw FileNotFoundException("Dokka base plugin is not found! Make sure you placed 'dokka-base.jar' containing base plugin along the cli jar file")
+            }
         }
-    }
-
-    override val generateIndexPages: Boolean by parser.singleFlag(
-        listOf("-generateIndexPages"),
-        "Generate index page"
+    override val generateIndexPages by parser.option(ArgType.Boolean, description = "Generate index pages")
+        .default(false)
+    override val cacheRoot: String? by parser.option(
+        ArgType.String,
+        description = "Path to cache folder, or 'default' to use ~/.cache/dokka, if not provided caching is disabled"
     )
-
-    override val cacheRoot: String? by parser.stringOption(
-        listOf("-cacheRoot"),
-        "Path to cache folder, or 'default' to use ~/.cache/dokka, if not provided caching is disabled",
-        null
-    )
-
     override val impliedPlatforms: List<String> = emptyList()
-
-    override val passesConfigurations: List<Arguments> by parser.repeatableFlag(
-        listOf("-pass"),
-        "Single dokka pass"
-    ) {
-        Arguments(parser).also { if(it.moduleName.isEmpty()) DokkaConsoleLogger.warn("Not specified module name. It can result in unexpected behaviour while including documentation for module") }
-    }
-
+    override val passesConfigurations by parser.option(
+        ArgTypeArguments,
+        description = "Single dokka pass",
+        fullName = "pass"
+    ).multiple()
     override val pluginsConfiguration: Map<String, String> = mutableMapOf()
 }
 
 class Arguments(val parser: DokkaArgumentsParser) : DokkaConfiguration.PassConfiguration {
-    override val moduleName: String by parser.stringOption(
-        listOf("-module"),
-        "Name of the documentation module",
-        ""
+
+    val parser = ArgParser("passConfiguration")
+
+    override val moduleName by parser.option(
+        ArgType.String,
+        description = "Name of the documentation module",
+        fullName = "module"
+    ).default("")
+    override val classpath by parser.option(ArgType.String, description = "Classpath for symbol resolution").vararg()
+    override val sourceRoots by parser.option(
+        ArgType.SourceRoot,
+        description = "Source file or directory (allows many paths separated by the system path separator)",
+        fullName = "src"
+    ).vararg()
+    override val samples by parser.option(Arg.String, description = "Source root for samples").vararg()
+    override val includes by parser.option(
+        Arg.String,
+        description = "Markdown files to load (allows many paths separated by the system path separator)"
+    ).vararg()
+    override val includeNonPublic by parser.option(ArgType.Boolean, description = "Include non public")
+    override val includeRootPackage by parser.option(ArgType.Boolean, description = "Include non public")
+    override val reportUndocumented by parser.option(ArgType.Boolean, description = "Report undocumented members")
+    override val skipEmptyPackages by parser.option(
+        ArgType.Boolean,
+        description = "Do not create index pages for empty packages"
     )
-
-    override val classpath: List<String> by parser.repeatableOption(
-        listOf("-classpath"),
-        "Classpath for symbol resolution"
+    override val skipDeprecated by parser.option(ArgType.Boolean, description = "Do not output deprecated members")
+    override val jdkVersion by parser.option(
+        ArgType.Int,
+        description = "Version of JDK to use for linking to JDK JavaDoc"
+    ).default(8)
+    override val languageVersion by parser.option(
+        ArgType.String,
+        description = "Language Version to pass to Kotlin analysis"
     )
-
-    override val sourceRoots: List<DokkaConfiguration.SourceRoot> by parser.repeatableOption(
-        listOf("-src"),
-        "Source file or directory (allows many paths separated by the system path separator)"
-    ) { SourceRootImpl(it) }
-
-    override val samples: List<String> by parser.repeatableOption(
-        listOf("-sample"),
-        "Source root for samples"
+    override val apiVersion by parser.option(
+        ArgType.String,
+        description = "Kotlin Api Version to pass to Kotlin analysis"
     )
-
-    override val includes: List<String> by parser.repeatableOption(
-        listOf("-include"),
-        "Markdown files to load (allows many paths separated by the system path separator)"
+    override val noStdlibLink by parser.option(ArgType.Boolean, description = "Disable documentation link to stdlib")
+    override val noJdkLink by parser.option(ArgType.Boolean, description = "Disable documentation link to JDK")
+    override val suppressedFiles by parser.option(ArgType.String, description = "Paths to files to be supperessed")
+        .vararg()
+    override val sinceKotlin by parser.option(
+        ArgType.Boolean,
+        description = "Kotlin Api version to use as base version, if none specified"
     )
-
-    override val includeNonPublic: Boolean by parser.singleFlag(
-        listOf("-includeNonPublic"),
-        "Include non public"
+    override val collectInheritedExtensionsFromLibraries by parser.option(
+        ArgType.Boolean,
+        description = "Search for applicable extensions in libraries"
     )
-
-    override val includeRootPackage: Boolean by parser.singleFlag(
-        listOf("-includeRootPackage"),
-        "Include root package"
-    )
-
-    override val reportUndocumented: Boolean by parser.singleFlag(
-        listOf("-reportUndocumented"),
-        "Report undocumented members"
-    )
-
-    override val skipEmptyPackages: Boolean by parser.singleFlag(
-        listOf("-skipEmptyPackages"),
-        "Do not create index pages for empty packages"
-    )
-
-    override val skipDeprecated: Boolean by parser.singleFlag(
-        listOf("-skipDeprecated"),
-        "Do not output deprecated members"
-    )
-
-    override val jdkVersion: Int by parser.singleOption(
-        listOf("-jdkVersion"),
-        "Version of JDK to use for linking to JDK JavaDoc",
-        { it.toInt() },
-        { 8 }
-    )
-
-    override val languageVersion: String? by parser.stringOption(
-        listOf("-languageVersion"),
-        "Language Version to pass to Kotlin analysis",
-        null
-    )
-
-    override val apiVersion: String? by parser.stringOption(
-        listOf("-apiVersion"),
-        "Kotlin Api Version to pass to Kotlin analysis",
-        null
-    )
-
-    override val noStdlibLink: Boolean by parser.singleFlag(
-        listOf("-noStdlibLink"),
-        "Disable documentation link to stdlib"
-    )
-
-    override val noJdkLink: Boolean by parser.singleFlag(
-        listOf("-noJdkLink"),
-        "Disable documentation link to JDK"
-    )
-
-    override val suppressedFiles: List<String> by parser.repeatableOption(
-        listOf("-suppressedFile"),
-        ""
-    )
-
-    override val sinceKotlin: String? by parser.stringOption(
-        listOf("-sinceKotlin"),
-        "Kotlin Api version to use as base version, if none specified",
-        null
-    )
-
-    override val collectInheritedExtensionsFromLibraries: Boolean by parser.singleFlag(
-        listOf("-collectInheritedExtensionsFromLibraries"),
-        "Search for applicable extensions in libraries"
-    )
-
     override val analysisPlatform: Platform by parser.singleOption(
-        listOf("-analysisPlatform"),
-        "Platform for analysis",
-        { Platform.fromString(it) },
-        { Platform.DEFAULT }
-    )
+        ArgTypePlatform,
+        description = "Platform for analysis"
+    ).default(Platform.DEFAULT)
+    override val targets by parser.option(ArgType.String, description = "Generation targets").vararg()
+    override val perPackageOptions by parser.option(
+        ArgType.PackageOptions,
+        description = "List of package passConfiguration in format \"prefix,-deprecated,-privateApi,+warnUndocumented,+suppress;...\" "
+    ).vararg().default(mutableListOf())
 
-    override val targets: List<String> by parser.repeatableOption(
-        listOf("-target"),
-        "Generation targets"
-    )
 
-    override val perPackageOptions: MutableList<DokkaConfiguration.PackageOptions> by parser.singleOption(
-        listOf("-packageOptions"),
-        "List of package passConfiguration in format \"prefix,-deprecated,-privateApi,+warnUndocumented,+suppress;...\" ",
-        { parsePerPackageOptions(it).toMutableList() },
-        { mutableListOf() }
-    )
+    override val externalDocumentationLinks by parser.option(
+        ArgTypeExternalDocumentationLink,
+        description = "External documentation links in format url^packageListUrl^^url2..."
+    ).vararg().default(mutableListOf())
 
-    override val externalDocumentationLinks: MutableList<DokkaConfiguration.ExternalDocumentationLink> by parser.singleOption(
-        listOf("-links"),
-        "External documentation links in format url^packageListUrl^^url2...",
-        { MainKt.parseLinks(it).toMutableList() },
-        { mutableListOf() }
-    )
-
-    override val sourceLinks: MutableList<DokkaConfiguration.SourceLinkDefinition> by parser.repeatableOption(
-        listOf("-srcLink"),
-        "Mapping between a source directory and a Web site for browsing the code"
-    ) {
-        if (it.isNotEmpty() && it.contains("="))
-            SourceLinkDefinitionImpl.parseSourceLinkDefinition(it)
-        else {
-            throw IllegalArgumentException("Warning: Invalid -srcLink syntax. Expected: <path>=<url>[#lineSuffix]. No source links will be generated.")
-        }
-    }
+    override val sourceLinks by parser.option(
+        ArgTypeSourceLinkDefinition,
+        description = "Mapping between a source directory and a Web site for browsing the code",
+        fullName = "srcLink"
+    ).vararg()
 }
 
 object MainKt {
+
     fun defaultLinks(config: DokkaConfiguration.PassConfiguration): MutableList<ExternalDocumentationLink> =
         mutableListOf<ExternalDocumentationLink>().apply {
-        if (!config.noJdkLink)
-            this += DokkaConfiguration.ExternalDocumentationLink
-                .Builder("https://docs.oracle.com/javase/${config.jdkVersion}/docs/api/")
-                .build()
+            if (!config.noJdkLink)
+                this += DokkaConfiguration.ExternalDocumentationLink
+                    .Builder("https://docs.oracle.com/javase/${config.jdkVersion}/docs/api/")
+                    .build()
 
-        if (!config.noStdlibLink)
-            this += DokkaConfiguration.ExternalDocumentationLink
-                .Builder("https://kotlinlang.org/api/latest/jvm/stdlib/")
-                .build()
-    }
+            if (!config.noStdlibLink)
+                this += DokkaConfiguration.ExternalDocumentationLink
+                    .Builder("https://kotlinlang.org/api/latest/jvm/stdlib/")
+                    .build()
+        }
 
     fun parseLinks(links: String): List<ExternalDocumentationLink> {
         val (parsedLinks, parsedOfflineLinks) = links.split("^^")
@@ -231,39 +155,6 @@ object MainKt {
         val generator = DokkaGenerator(configuration, DokkaConsoleLogger)
         generator.generate()
         DokkaConsoleLogger.report()
-    }
-
-    fun findToolsJar(): File {
-        val javaHome = System.getProperty("java.home")
-        val default = File(javaHome, "../lib/tools.jar")
-        val mac = File(javaHome, "../Classes/classes.jar")
-        return when {
-            default.exists() -> default
-            mac.exists() -> mac
-            else -> {
-                throw Exception("tools.jar not found, please check it, also you can provide it manually, using -cp")
-            }
-        }
-    }
-
-    fun createClassLoaderWithTools(): ClassLoader {
-        val toolsJar = findToolsJar().canonicalFile.toURI().toURL()
-        val originalUrls = (javaClass.classLoader as? URLClassLoader)?.urLs
-        val dokkaJar = javaClass.protectionDomain.codeSource.location
-        val urls = if (originalUrls != null) arrayOf(toolsJar, *originalUrls) else arrayOf(toolsJar, dokkaJar)
-        return URLClassLoader(urls, ClassLoader.getSystemClassLoader().parent)
-    }
-
-    fun startWithToolsJar(configuration: DokkaConfiguration) {
-        try {
-            javaClass.classLoader.loadClass("com.sun.tools.doclets.formats.html.HtmlDoclet")
-            entry(configuration)
-        } catch (e: ClassNotFoundException) {
-            val classLoader = createClassLoaderWithTools()
-            classLoader.loadClass("org.jetbrains.dokka.MainKt")
-                .methods.find { it.name == "entry" }!!
-                .invoke(null, configuration)
-        }
     }
 
     fun createConfiguration(args: Array<String>): GlobalArguments {
@@ -317,12 +208,36 @@ object MainKt {
     fun main(args: Array<String>) {
         val configuration = createConfiguration(args)
 
-        if (configuration.format.toLowerCase() == "javadoc")
-            startWithToolsJar(configuration)
-        else
-            entry(configuration)
+        entry(configuration)
     }
 }
 
 
+object ArgTypeFile : ArgType<File>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): File = File(value)
+}
 
+object ArgTypeSourceRoot : ArgType<SourceRoot>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): SourceRoot = SourceRootImpl(value)
+}
+
+object ArgTypePlatform : ArgType<Platform>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): Platform = Platform.fromString(value)
+}
+
+object ArgTypePackageOptions : ArgType<PackageOptions>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): PackageOptions = parsePerPackageOptions(value)
+}
+
+object ArgTypeExternalDocumentationLink : ArgType<ExternalDocumentationLink>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): ExternalDocumentationLink = MainKt.parseLink(value)
+}
+
+object ArgTypeSourceLinkDefinition : ArgType<SourceLinkDefinition>(true) {
+    override fun convert(value: kotlin.String, name: kotlin.String): SourceLinkDefinition =
+        if (value.isNotEmpty() && value.contains("="))
+            SourceLinkDefinitionImpl.parseSourceLinkDefinition(value)
+        else {
+            throw IllegalArgumentException("Warning: Invalid -srcLink syntax. Expected: <path>=<url>[#lineSuffix]. No source links will be generated.")
+        }
+}
