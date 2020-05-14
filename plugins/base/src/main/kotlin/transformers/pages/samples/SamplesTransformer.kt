@@ -42,7 +42,7 @@ abstract class SamplesTransformer(val context: DokkaContext) : PageTransformer {
     }
 
     private fun setUpAnalysis(context: DokkaContext) = context.configuration.passesConfigurations.map {
-        it.sourceSet to AnalysisEnvironment(DokkaGenerator.DokkaMessageCollector(context.logger), it.analysisPlatform).run {
+        context.sourceSet(it) to AnalysisEnvironment(DokkaGenerator.DokkaMessageCollector(context.logger), it.analysisPlatform).run {
             if (analysisPlatform == Platform.jvm) {
                 addClasspath(PathUtil.getJdkClassesRootsFromCurrentJre())
             }

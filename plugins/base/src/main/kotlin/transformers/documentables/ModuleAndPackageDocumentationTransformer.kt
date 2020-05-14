@@ -1,7 +1,6 @@
 package org.jetbrains.dokka.base.transformers.documentables
 
 import org.jetbrains.dokka.model.DModule
-import org.jetbrains.dokka.model.SourceSetDependent
 import org.jetbrains.dokka.model.sourceSet
 import org.jetbrains.dokka.parsers.MarkdownParser
 import org.jetbrains.dokka.plugability.DokkaContext
@@ -11,14 +10,14 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 
-internal object ModuleAndPackageDocumentationTransformer : PreMergeDocumentableTransformer {
+internal class ModuleAndPackageDocumentationTransformer(val context: DokkaContext) : PreMergeDocumentableTransformer {
 
-    override fun invoke(original: List<DModule>, context: DokkaContext): List<DModule> {
+    override fun invoke(original: List<DModule>): List<DModule> {
 
         val modulesAndPackagesDocumentation =
             context.configuration.passesConfigurations
                 .map {
-                    Pair(it.moduleName, it.sourceSet) to
+                    Pair(it.moduleName, context.sourceSet(it)) to
                             it.includes.map { Paths.get(it) }
                                 .also {
                                     it.forEach {

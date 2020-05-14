@@ -14,6 +14,7 @@ import org.jetbrains.dokka.base.transformers.pages.samples.DefaultSamplesTransfo
 import org.jetbrains.dokka.base.translators.documentables.PageContentBuilder
 import org.jetbrains.dokka.links.DRI
 import org.jetbrains.dokka.model.Documentable
+import org.jetbrains.dokka.model.SourceSetCache
 import org.jetbrains.dokka.model.SourceSetData
 import org.jetbrains.dokka.model.doc.DocTag
 import org.jetbrains.dokka.model.properties.PropertyContainer
@@ -35,6 +36,7 @@ abstract class RenderingOnlyTestBase {
         DokkaBase().htmlPreprocessors to { _ -> RootCreator },
         DokkaBase().externalLocationProviderFactory to { _ -> ::JavadocExternalLocationProviderFactory },
         DokkaBase().externalLocationProviderFactory to { _ -> ::DokkaExternalLocationProviderFactory },
+        sourceSetCache = SourceSetCache(),
         testConfiguration = DokkaConfigurationImpl("", "", false, null, emptyList(), emptyList(), emptyList(), emptyMap())
     )
 

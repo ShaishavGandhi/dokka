@@ -1,5 +1,5 @@
 var pages = [
 { "name": "root",  "location": "root/index.html" },
-{ "name": "[jvm root]",  "location": "root/[jvm root]/index.html" },
-{ "name": "f",  "location": "root/[jvm root]/f.html" }
+{ "name": "[main root]",  "location": "root/[main root]/index.html" },
+{ "name": "f",  "location": "root/[main root]/f.html" }
 ]

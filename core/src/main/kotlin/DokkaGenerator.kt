@@ -3,6 +3,7 @@ package org.jetbrains.dokka
 import org.jetbrains.dokka.analysis.AnalysisEnvironment
 import org.jetbrains.dokka.analysis.DokkaResolutionFacade
 import org.jetbrains.dokka.model.DModule
+import org.jetbrains.dokka.model.SourceSetCache
 import org.jetbrains.dokka.model.SourceSetData
 import org.jetbrains.dokka.model.sourceSet
 import org.jetbrains.dokka.pages.RootPageNode
@@ -27,10 +28,11 @@ class DokkaGenerator(
 ) {
     fun generate() = timed {
         report("Setting up analysis environments")
-        val sourceSets: Map<SourceSetData, EnvironmentAndFacade> = setUpAnalysis(configuration)
+        val sourceSetsCache = SourceSetCache()
+        val sourceSets: Map<SourceSetData, EnvironmentAndFacade> = setUpAnalysis(configuration, sourceSetsCache)
 
         report("Initializing plugins")
-        val context = initializePlugins(configuration, logger, sourceSets)
+        val context = initializePlugins(configuration, logger, sourceSets, sourceSetsCache)
 
         report("Creating documentation models")
         val modulesFromPlatforms = createDocumentationModels(sourceSets, context)
@@ -58,17 +60,21 @@ class DokkaGenerator(
         logger.report()
     }.dump("\n\n === TIME MEASUREMENT ===\n")
 
-    fun setUpAnalysis(configuration: DokkaConfiguration): Map<SourceSetData, EnvironmentAndFacade> =
+    fun setUpAnalysis(
+        configuration: DokkaConfiguration,
+        sourceSetsCache: SourceSetCache
+    ): Map<SourceSetData, EnvironmentAndFacade> =
         configuration.passesConfigurations.map {
-            it.sourceSet to createEnvironmentAndFacade(it)
+            sourceSetsCache.getSourceSet(it) to createEnvironmentAndFacade(it)
         }.toMap()
 
     fun initializePlugins(
         configuration: DokkaConfiguration,
         logger: DokkaLogger,
-        platforms: Map<SourceSetData, EnvironmentAndFacade>,
+        sourceSets: Map<SourceSetData, EnvironmentAndFacade>,
+        sourceSetsCache: SourceSetCache,
         pluginOverrides: List<DokkaPlugin> = emptyList()
-    ) = DokkaContext.create(configuration, logger, platforms, pluginOverrides)
+    ) = DokkaContext.create(configuration, logger, sourceSets, sourceSetsCache, pluginOverrides)
 
     fun createDocumentationModels(
         platforms: Map<SourceSetData, EnvironmentAndFacade>,
@@ -78,7 +84,7 @@ class DokkaGenerator(
     fun transformDocumentationModelBeforeMerge(
         modulesFromPlatforms: List<DModule>,
         context: DokkaContext
-    ) = context[CoreExtensions.preMergeDocumentableTransformer].fold(modulesFromPlatforms) { acc, t -> t(acc, context) }
+    ) = context[CoreExtensions.preMergeDocumentableTransformer].fold(modulesFromPlatforms) { acc, t -> t(acc) }
 
     fun mergeDocumentationModels(
         modulesFromPlatforms: List<DModule>,

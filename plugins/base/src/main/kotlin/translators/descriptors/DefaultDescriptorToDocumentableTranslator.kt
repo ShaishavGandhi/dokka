@@ -37,23 +37,23 @@ import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 
 object DefaultDescriptorToDocumentableTranslator : SourceToDocumentableTranslator {
 
-    override fun invoke(sourceSets: SourceSetData, context: DokkaContext): DModule {
+    override fun invoke(sourceSet: SourceSetData, context: DokkaContext): DModule {
 
-        val (environment, facade) = context.platforms.getValue(sourceSets)
+        val (environment, facade) = context.platforms.getValue(sourceSet)
         val packageFragments = environment.getSourceFiles().asSequence()
             .map { it.packageFqName }
             .distinct()
             .mapNotNull { facade.resolveSession.getPackageFragment(it) }
             .toList()
 
-        return DokkaDescriptorVisitor(sourceSets, context.platforms.getValue(sourceSets).facade, context.logger).run {
+        return DokkaDescriptorVisitor(sourceSet, context.platforms.getValue(sourceSet).facade, context.logger).run {
             packageFragments.mapNotNull { it.safeAs<PackageFragmentDescriptor>() }.map {
                 visitPackageFragmentDescriptor(
                     it,
                     DRIWithPlatformInfo(DRI.topLevel, emptyMap())
                 )
             }
-        }.let { DModule(sourceSets.moduleName, it, emptyMap(), null, listOf(sourceSets)) }
+        }.let { DModule(sourceSet.moduleName, it, emptyMap(), null, listOf(sourceSet)) }
     }
 }
 

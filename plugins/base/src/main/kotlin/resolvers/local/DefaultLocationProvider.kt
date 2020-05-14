@@ -54,7 +54,7 @@ open class DefaultLocationProvider(
         getLocation(dri,
             this.dokkaContext.configuration.passesConfigurations
                 .filter { passConfig ->
-                    sourceSets.toSet().contains(passConfig.sourceSet)
+                    sourceSets.toSet().contains(dokkaContext.sourceSet(passConfig))
                 }
                 .groupBy({ it.jdkVersion }, { it.externalDocumentationLinks })
                 .map { it.key to it.value.flatten().distinct() }.toMap()

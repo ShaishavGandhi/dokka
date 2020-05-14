@@ -29,7 +29,7 @@ object DefaultPsiToDocumentableTranslator : SourceToDocumentableTranslator {
     override fun invoke(sourceSetData: SourceSetData, context: DokkaContext): DModule {
 
         fun isFileInSourceRoots(file: File) : Boolean {
-            return sourceSetData.sourceRoots.any { root -> file.path.startsWith(root.path) }
+            return sourceSetData.sourceRoots.any { root -> file.path.startsWith(File(root.path).absolutePath) }
         }
 
         val (environment, _) = context.platforms.getValue(sourceSetData)

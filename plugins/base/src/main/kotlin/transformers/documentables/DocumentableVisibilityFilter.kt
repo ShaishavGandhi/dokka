@@ -8,11 +8,11 @@ import org.jetbrains.dokka.model.DFunction
 import org.jetbrains.dokka.plugability.DokkaContext
 import org.jetbrains.dokka.transformers.documentation.PreMergeDocumentableTransformer
 
-internal object DocumentableVisibilityFilter : PreMergeDocumentableTransformer {
+internal class DocumentableVisibilityFilter(val context: DokkaContext) : PreMergeDocumentableTransformer {
 
-    override fun invoke(modules: List<DModule>, context: DokkaContext): List<DModule> = modules.map { original ->
+    override fun invoke(modules: List<DModule>): List<DModule> = modules.map { original ->
         val packageOptions =
-            context.configuration.passesConfigurations.first { original.sourceSets.contains(it.sourceSet) }
+            context.configuration.passesConfigurations.first { original.sourceSets.contains(context.sourceSet(it)) }
                 .perPackageOptions
 
         DocumentableFilter(packageOptions).processModule(original)

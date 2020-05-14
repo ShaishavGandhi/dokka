@@ -2,6 +2,7 @@ package org.jetbrains.dokka.plugability
 
 import org.jetbrains.dokka.DokkaConfiguration
 import org.jetbrains.dokka.EnvironmentAndFacade
+import org.jetbrains.dokka.model.SourceSetCache
 import org.jetbrains.dokka.model.SourceSetData
 import org.jetbrains.dokka.utilities.DokkaLogger
 import java.io.File
@@ -19,6 +20,7 @@ interface DokkaContext {
 
     fun <T, E> single(point: E): T where T : Any, E : ExtensionPoint<T>
 
+    val sourceSetCache: SourceSetCache
     val logger: DokkaLogger
     val configuration: DokkaConfiguration
     val platforms: Map<SourceSetData, EnvironmentAndFacade>
@@ -29,10 +31,11 @@ interface DokkaContext {
         fun create(
             configuration: DokkaConfiguration,
             logger: DokkaLogger,
-            platforms: Map<SourceSetData, EnvironmentAndFacade>,
+            sourceSets: Map<SourceSetData, EnvironmentAndFacade>,
+            sourceSetsCache: SourceSetCache,
             pluginOverrides: List<DokkaPlugin>
         ): DokkaContext =
-            DokkaContextConfigurationImpl(logger, configuration, platforms).apply {
+            DokkaContextConfigurationImpl(logger, configuration, sourceSets, sourceSetsCache).apply {
                 // File(it.path) is a workaround for an incorrect filesystem in a File instance returned by Gradle.
                 configuration.pluginsClasspath.map { File(it.path).toURI().toURL() }
                     .toTypedArray()
@@ -56,7 +59,8 @@ interface DokkaContextConfiguration {
 private class DokkaContextConfigurationImpl(
     override val logger: DokkaLogger,
     override val configuration: DokkaConfiguration,
-    override val platforms: Map<SourceSetData, EnvironmentAndFacade>
+    override val platforms: Map<SourceSetData, EnvironmentAndFacade>,
+    override val sourceSetCache: SourceSetCache
 ) : DokkaContext, DokkaContextConfiguration {
     private val plugins = mutableMapOf<KClass<*>, DokkaPlugin>()
     private val pluginStubs = mutableMapOf<KClass<*>, DokkaPlugin>()
