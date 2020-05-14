@@ -216,7 +216,7 @@ open class PageContentBuilder(
             children = listOf(createText(text, kind, sourceSets, styles, extra)),
             address = address,
             extra = PropertyContainer.empty(),
-            dci = DCI(setOf(mainDRI), kind),
+            dci = DCI(mainDRI, kind),
             sourceSets = sourceSets,
             style = emptySet()
         )

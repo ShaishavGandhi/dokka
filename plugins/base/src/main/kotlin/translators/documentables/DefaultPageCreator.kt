@@ -364,7 +364,7 @@ open class DefaultPageCreator(
                                     }
                                     after {
                                         group(kind = ContentKind.BriefComment) {
-                                            text(it.briefDocumentation())
+                                            contentForBrief(it)
                                         }
                                     }
                                 }
