@@ -8,27 +8,27 @@ import org.jetbrains.dokka.utilities.DokkaLogger
 import java.util.function.BiConsumer
 
 
-fun parsePerPackageOptions(arg: String): List<PackageOptions> {
-    if (arg.isBlank()) return emptyList()
-
-    return arg.split(";").map { it.split(",") }.map {
-        val prefix = it.first()
-        if (prefix == "")
-            throw IllegalArgumentException("Please do not register packageOptions with all match pattern, use global settings instead")
-        val args = it.subList(1, it.size)
-        val deprecated = args.find { it.endsWith("deprecated") }?.startsWith("+") ?: true
-        val reportUndocumented = args.find { it.endsWith("warnUndocumented") }?.startsWith("+") ?: true
-        val privateApi = args.find { it.endsWith("privateApi") }?.startsWith("+") ?: false
-        val suppress = args.find { it.endsWith("suppress") }?.startsWith("+") ?: false
-        PackageOptionsImpl(
-            prefix,
-            includeNonPublic = privateApi,
-            reportUndocumented = reportUndocumented,
-            skipDeprecated = !deprecated,
-            suppress = suppress
-        )
-    }
+fun parsePerPackageOptions(args: List<String>): List<PackageOptions> = args.map { it.split(",") }.map {
+    println(args.size)
+    println("ASD")
+    println(it)
+    val prefix = it.first()
+    if (prefix == "")
+        throw IllegalArgumentException("Please do not register packageOptions with all match pattern, use global settings instead")
+    val args = it.subList(1, it.size)
+    val deprecated = args.find { it.endsWith("deprecated") }?.startsWith("+") ?: true
+    val reportUndocumented = args.find { it.endsWith("warnUndocumented") }?.startsWith("+") ?: true
+    val privateApi = args.find { it.endsWith("privateApi") }?.startsWith("+") ?: false
+    val suppress = args.find { it.endsWith("suppress") }?.startsWith("+") ?: false
+    PackageOptionsImpl(
+        prefix,
+        includeNonPublic = privateApi,
+        reportUndocumented = reportUndocumented,
+        skipDeprecated = !deprecated,
+        suppress = suppress
+    )
 }
+
 
 class DokkaBootstrapImpl : DokkaBootstrap {
 
