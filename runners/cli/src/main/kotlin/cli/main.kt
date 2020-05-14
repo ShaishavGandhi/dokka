@@ -276,7 +276,7 @@ object ArgTypeArgument : ArgType<DokkaConfiguration.PassConfiguration>(true) {
         passArguments(value.split(" ").toTypedArray())
 
     override val description: kotlin.String
-        get() = "".also { passArguments(arrayOf("-h")) }
+        get() = ""//.also { passArguments(arrayOf("-h")) }
 }
 
 fun defaultLinks(config: DokkaConfiguration.PassConfiguration): MutableList<ExternalDocumentationLink> =
@@ -315,5 +315,4 @@ fun main(args: Array<String>) {
     val configuration = GlobalArguments(args)
     val generator = DokkaGenerator(configuration, DokkaConsoleLogger)
     generator.generate()
-    DokkaConsoleLogger.report()
 }

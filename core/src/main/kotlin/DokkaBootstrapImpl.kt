@@ -9,9 +9,6 @@ import java.util.function.BiConsumer
 
 
 fun parsePerPackageOptions(args: List<String>): List<PackageOptions> = args.map { it.split(",") }.map {
-    println(args.size)
-    println("ASD")
-    println(it)
     val prefix = it.first()
     if (prefix == "")
         throw IllegalArgumentException("Please do not register packageOptions with all match pattern, use global settings instead")
@@ -58,14 +55,13 @@ class DokkaBootstrapImpl : DokkaBootstrap {
 
         override fun report() {
             if (warningsCount > 0 || errorsCount > 0) {
-                println(
-                    "Generation completed with $warningsCount warning" +
-                            (if (DokkaConsoleLogger.warningsCount == 1) "" else "s") +
-                            " and $errorsCount error" +
-                            if (DokkaConsoleLogger.errorsCount == 1) "" else "s"
+                consumer.accept("summary", "Generation completed with $warningsCount warning" +
+                    (if (warningsCount == 1) "" else "s") +
+                    " and $errorsCount error" +
+                    if (errorsCount == 1) "" else "s"
                 )
             } else {
-                println("generation completed successfully")
+                consumer.accept("summary", "generation completed successfully")
             }
         }
     }
