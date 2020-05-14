@@ -197,16 +197,16 @@ open class PageContentBuilder(
             text: String,
             address: String,
             kind: Kind = ContentKind.Main,
-            platformData: Set<PlatformData> = mainPlatformData,
+            sourceSets: Set<SourceSetData> = mainPlatformData,
             styles: Set<Style> = mainStyles,
             extra: PropertyContainer<ContentNode> = mainExtra
         ) =
         ContentResolvedLink(
-            children = listOf(createText(text, kind, platformData, styles, extra)),
+            children = listOf(createText(text, kind, sourceSets, styles, extra)),
             address = address,
             extra = PropertyContainer.empty(),
             dci = DCI(setOf(mainDRI), kind),
-            platforms = platformData,
+            sourceSets = sourceSets,
             style = emptySet()
         )
 

@@ -289,7 +289,7 @@ open class DefaultPageCreator(
                 platforms.forEach { platformData ->
                     val content = samples.filter { it.value.isEmpty() || platformData in it.value }
                     if (content.isNotEmpty()) {
-                        group(platformData = setOf(platformData)) {
+                        group(sourceSets = setOf(platformData)) {
                             header(4, kind = ContentKind.Comment) { text("Samples") }
                             content.forEach {
                                 comment(Text(it.key))

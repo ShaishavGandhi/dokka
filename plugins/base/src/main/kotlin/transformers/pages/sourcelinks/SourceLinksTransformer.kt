@@ -33,11 +33,11 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
         }
 
     private fun getSourceLinks() = context.configuration.passesConfigurations
-        .flatMap { it.sourceLinks.map { sl -> SourceLink(sl, it.sourceSet) } }
+        .flatMap { it.sourceLinks.map { sl -> SourceLink(sl, context.sourceSetCache.getSourceSet(it)) } }
 
     private fun resolveSources(documentable: WithExpectActual) = documentable.sources
         .mapNotNull { entry ->
-            getSourceLinks().find { entry.value.path.contains(it.path) && it.platformData == entry.key }?.let {
+            getSourceLinks().find { entry.value.path.contains(it.path) && it.sourceSetData == entry.key }?.let {
                 Pair(
                     entry.key,
                     entry.value.toLink(it)
@@ -45,7 +45,7 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
             }
         }
 
-    private fun ContentPage.addSourcesContent(sources: List<Pair<PlatformData, String>>) = builder
+    private fun ContentPage.addSourcesContent(sources: List<Pair<SourceSetData, String>>) = builder
         .buildSourcesContent(this, sources)
         .let {
             this.modified(
@@ -55,10 +55,10 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
 
     private fun PageContentBuilder.buildSourcesContent(
         node: ContentPage,
-        sources: List<Pair<PlatformData, String>>
+        sources: List<Pair<SourceSetData, String>>
     ) = contentFor(
         node.dri.first(),
-        node.documentable!!.platformData.toSet()
+        node.documentable!!.sourceSets.toSet()
     ) {
         header(2) { text("Sources") }
         +ContentTable(
@@ -69,7 +69,7 @@ class SourceLinksTransformer(val context: DokkaContext, val builder: PageContent
                 }
             },
             DCI(node.dri, ContentKind.Source),
-            node.documentable!!.platformData.toSet(),
+            node.documentable!!.sourceSets.toSet(),
             style = emptySet()
         )
     }

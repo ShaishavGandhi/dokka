@@ -1,6 +1,8 @@
 package org.jetbrains.dokka.base.transformers.documentables
 
 import org.jetbrains.dokka.model.DModule
+import org.jetbrains.dokka.model.SourceSetData
+import org.jetbrains.dokka.model.doc.DocumentationNode
 import org.jetbrains.dokka.model.sourceSet
 import org.jetbrains.dokka.parsers.MarkdownParser
 import org.jetbrains.dokka.plugability.DokkaContext
@@ -84,13 +86,11 @@ internal class ModuleAndPackageDocumentationTransformer(val context: DokkaContex
             }.toMap()
 
             module.copy(
-                documentation = module.documentation.let { it + moduleDocumentation },
+                documentation = mergeDocumentation(module.documentation, moduleDocumentation),
                 packages = module.packages.map {
                     val packageDocumentation = packagesDocumentation[it.name]
                     if (packageDocumentation != null && packageDocumentation.isNotEmpty())
-                        it.copy(documentation = it.documentation.let { value ->
-                            value + packagesDocumentation[it.name]!!
-                        })
+                        it.copy(documentation = mergeDocumentation(it.documentation, packageDocumentation))
                     else
                         it
                 }
@@ -98,10 +98,10 @@ internal class ModuleAndPackageDocumentationTransformer(val context: DokkaContex
         }
     }
 
-    private fun mergeDocumentation(origin: Map<PlatformData, DocumentationNode>, new: Map<PlatformData, DocumentationNode>) = PlatformDependent(
+    private fun mergeDocumentation(origin: Map<SourceSetData, DocumentationNode>, new: Map<SourceSetData, DocumentationNode>) =
         (origin.asSequence() + new.asSequence())
             .distinct()
             .groupBy({ it.key }, { it.value })
             .mapValues { (_, values) -> DocumentationNode(values.flatMap { it.children }) }
-    )
+
 }

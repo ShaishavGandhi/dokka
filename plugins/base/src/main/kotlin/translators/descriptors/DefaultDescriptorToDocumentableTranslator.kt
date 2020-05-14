@@ -495,13 +495,11 @@ private class DokkaDescriptorVisitor(
             .filter { it.kind == ClassKind.ENUM_ENTRY }
             .map { enumEntryDescriptor(it, parent) }
 
-    private fun DeclarationDescriptor.resolveDescriptorData(platformData: PlatformData?): PlatformDependent<DocumentationNode> = getDocumentation().let {
+    private fun DeclarationDescriptor.resolveDescriptorData(sourceSets: SourceSetData?): SourceSetDependent<DocumentationNode> = getDocumentation().let {
         if (it.children.isEmpty())
-            PlatformDependent.empty()
-        else if (platformData != null)
-            PlatformDependent.from(platformData, it)
+            emptyMap()
         else
-            PlatformDependent.expectFrom(it)
+            getDocumentation().toSourceSetDependent()
     }
 
     private fun DeclarationDescriptor.resolveDescriptorData(): SourceSetDependent<DocumentationNode> =
